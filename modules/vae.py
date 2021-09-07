@@ -82,7 +82,6 @@ class VAE(nn.Module):
         return (recon_x, mu, logvar)
 
 
-
 class VariationalLoss(nn.Module):
     def __init__(self):
         super().__init__()
@@ -94,4 +93,3 @@ class VariationalLoss(nn.Module):
         kld_element = logvar + 1 - mu**2 - exp(logvar)
         kldloss = -0.5 * kld_element.sum()
         return (bceloss + kldloss) / batch
-

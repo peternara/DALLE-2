@@ -33,6 +33,7 @@ def relogin(driver: webdriver.Chrome, username_str: str, password_str: str) -> N
     # Submit
     submit = driver.find_element_by_id("wifi-submit")
     submit.click()
+    print("\t Automatically relogged in")
 
 
 def am_I_online() -> bool:
@@ -48,7 +49,10 @@ def main(args: argparse.Namespace):
     while True:
         online = am_I_online()
         if not online:
-            relogin(driver, args.username, args.password)
+            try:
+                relogin(driver, args.username, args.password)
+            except:
+                pass
         time.sleep(10)
 
 

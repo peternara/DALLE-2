@@ -12,3 +12,4 @@ x = torch.randn(1, 3, 28, 28)
 
 dec = Decoder(enc)
 dec(z).shape
+
