@@ -8,6 +8,7 @@ from .residual import ResidualStack
 class Encoder(nn.Module):
     def __init__(self, in_ch: int, nh: int, res_ch: int, n_res_layers: int):
         super().__init__()
+        self._nh = nh
         self._layers = nn.Sequential(
             # Shrink spatial by 2
             nn.Conv2d(
@@ -37,6 +38,10 @@ class Encoder(nn.Module):
                 in_ch=nh, 
                 res_ch=res_ch, 
                 nlayers=n_res_layers))
+    
+    @property
+    def nh(self) -> int:
+        return self._nh
 
     def forward(self, x: FloatTensor) -> FloatTensor:
         return self._layers(x)

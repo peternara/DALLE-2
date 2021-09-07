@@ -31,7 +31,7 @@ class Residual(nn.Module):
 
 class ResidualStack(nn.Module):
     def __init__(self, in_ch: int, res_ch: int, nlayers: int):
-        super(ResidualStack, self).__init__()
+        super().__init__()
         self._layers = nn.ModuleList([Residual(in_ch=in_ch, res_ch=res_ch) for _ in range(nlayers)])
     
     def forward(self, x: FloatTensor) -> FloatTensor:

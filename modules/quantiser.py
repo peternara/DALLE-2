@@ -9,20 +9,19 @@ from torch import FloatTensor, LongTensor, nn
 import torch.nn.functional as F
 
 
-@dataclass
-class QuantisedEncoding:
-    loss: FloatTensor
-    quantised: FloatTensor
-
-
 
 class Quantiser(nn.Module):
     def __init__(self, num_embeddings: int, embedding_dim: int, commitment: float = 0.25) -> None:
         super().__init__()
         self._embedding = nn.Embedding(num_embeddings, embedding_dim)
         self._commitment = commitment
+        self._embedding.weight.data.uniform_(-1/num_embeddings, 1/num_embeddings)
 
-    def forward(self, inputs: FloatTensor) -> QuantisedEncoding:
+    @property
+    def embedding_dim(self) -> int:
+        return self._embedding.embedding_dim
+
+    def forward(self, inputs: FloatTensor) -> Tuple[FloatTensor, FloatTensor]:
         """
         Inputs:
             shape of (batch, channels, height, width)
@@ -41,10 +40,9 @@ class Quantiser(nn.Module):
 
         # Calculate distances
         emb_matrix = self._embedding.weight                             # (num_embeddings, nc)
-        distances = (
-            2 * flat_inputs @ emb_matrix.T -                            # (batch*h*w, nc) mm (nc, num_embeddings) => (batch*h*w, num_embeddings)
-            (flat_inputs**2).sum(dim=1, keepdim=True) -                 # (batch*h*w, 1)
-            (emb_matrix**2).sum(dim=1))                                 # (num_embeddings, 1)
+        distances = (torch.sum(flat_inputs**2, dim=1, keepdim=True) 
+                    + torch.sum(self._embedding.weight**2, dim=1)
+                    - 2 * torch.matmul(flat_inputs, self._embedding.weight.t()))
                                                                         # Final shape = (batch*h*w, num_embeddings)
         # Perform Encoding
         encoding_indices = distances.argmin(dim=1).unsqueeze(1)         # (batch*h*w, num_embeddings) => (batch*h*w,) => (batch*h*w, 1)
@@ -52,16 +50,14 @@ class Quantiser(nn.Module):
         encodings.scatter_(dim=1, index=encoding_indices, value=1)      # (batch*h*w, num_embeddings)
         
         # Quantise, unflatten
-        quantised = encodings @ emb_matrix                              # (batch*h*w, num_embeddings) mm (num_embeddings, nc) => (batch*h*w, nc)
-        quantised = quantised.view(b, h, w, nc)                         # (batch, h, w, nc)
+        quantised = torch.matmul(encodings, self._embedding.weight).view(inputs.shape)
         
         # Get loss
         q_latent_loss = F.mse_loss(quantised, inputs.detach())
         e_latent_loss = F.mse_loss(quantised.detach(), inputs)
         loss = q_latent_loss + (self._commitment * e_latent_loss)
-        
+
         # Convert inputs into quantised nicely
-        inputs = inputs + (quantised - inputs).detach()
-        inputs = inputs.permute(0, 3, 1, 2).contiguous()
-        
-        return QuantisedEncoding(loss, inputs)
+        quantised = inputs + (quantised - inputs).detach()
+
+        return loss, quantised.permute(0, 3, 1, 2).contiguous()

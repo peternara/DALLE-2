@@ -3,8 +3,15 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Data
+*-py
+*.gz
+
 # C extensions
 *.so
+
+# VS Code
+*.vscode
 
 # Distribution / packaging
 .Python
