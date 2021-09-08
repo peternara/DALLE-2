@@ -7,8 +7,7 @@ import torch.nn.functional as F
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch import FloatTensor
-from torch.optim import Adam, Optimizer, optimizer
-from torch.utils.data import DataLoader, TensorDataset
+from torch.optim import Adam, Optimizer
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -32,7 +31,6 @@ class VQVAETrainer:
         ])
         trainset = datasets.MNIST('dataset/', train=True, download=True, transform=transform)
         testset = datasets.MNIST('dataset/', train=False, download=True, transform=transform)
-
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
         self._loader = trainloader
         return trainloader
